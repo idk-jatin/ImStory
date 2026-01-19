@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+
+pdfplumber
+pymupdf
+pdf2image
+pytesseract
+pillow
+
+nltk
+spacy
+tqdm
