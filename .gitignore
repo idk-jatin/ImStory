@@ -1,0 +1,17 @@
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+
+frontend/node_modules/
+
+.env
+
+.cache/
+*.ckpt
+*.safetensors
+
+.DS_Store
+.vscode/
+
+backend/app/storage/
