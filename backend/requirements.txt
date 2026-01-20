@@ -2,12 +2,17 @@ fastapi
 uvicorn
 python-multipart
 
-pdfplumber
 pymupdf
-pdf2image
 pytesseract
 pillow
+opencv-python
 
 nltk
 spacy
 tqdm
+sumy 
+scikit-learn
+
+transformers
+ftfy
+accelerate

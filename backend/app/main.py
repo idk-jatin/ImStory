@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from core.ocr import extract_text
+from core.cleaner import clean_text
 app = FastAPI(title="ImStory")
 
 app.add_middleware(
@@ -14,3 +15,10 @@ app.add_middleware(
 @app.get("/")
 def root():
     return {"status": "backend running"}
+
+if __name__ == "__main__":
+    texts = extract_text('./storage/occo.pdf')
+    print(texts)
+    for i,text in enumerate(texts):
+        texts[i]["text"] = clean_text(text["text"])
+    print(texts)
