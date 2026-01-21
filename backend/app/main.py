@@ -18,12 +18,13 @@ def root():
     return {"status": "backend running"}
 
 if __name__ == "__main__":
-    texts = extract_text('./storage/s1.pdf')
+    texts = extract_text('./storage/nairi.pdf')
     print(texts)
     for i,text in enumerate(texts):
         texts[i]["text"] = clean_text(text["text"])
     print(texts)
     scenes = get_scenes(texts)
     for s in scenes:
+        print("\n","-"*70)
         print("Scene:", s.scene_id)
         print(s.text)
