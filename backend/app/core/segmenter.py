@@ -81,6 +81,7 @@ def get_scenes(pages,threshold=0.025,max_chars=1400,min_chars = 400):
                 scene_id+=1
                 buffer=[]
                 buffer_len = 0
+                lowsim_st = 0
 
                 scene_st_page = sent["page"]
                 scene_st_char = sent["char_st"]
@@ -104,6 +105,7 @@ def get_scenes(pages,threshold=0.025,max_chars=1400,min_chars = 400):
             scene_id += 1
             buffer = []
             buffer_len = 0
+            lowsim_st = 0
     
     if buffer:
         text = " ".join(s["text"] for s in buffer)
@@ -118,5 +120,13 @@ def get_scenes(pages,threshold=0.025,max_chars=1400,min_chars = 400):
                 char_start=scene_st_char,
                 char_end=scene_en_char
             ))
+    final = []
+    for sc in scenes:
+        if final and len(sc.text) < 250:
+            final[-1].text += " " + sc.text
+            final[-1].end_page = sc.end_page
+            final[-1].char_end = sc.char_end
+        else:
+            final.append(sc)
 
     return scenes
