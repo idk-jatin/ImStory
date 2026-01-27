@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from core.ocr import extract_text
 from core.cleaner import clean_text
-from core.segmenter import get_scenes
-from core.summarizer import summarize_scenes
 app = FastAPI(title="ImStory")
 
 app.add_middleware(
@@ -18,18 +17,12 @@ app.add_middleware(
 def root():
     return {"status": "backend running"}
 
+
 if __name__ == "__main__":
-    texts = extract_text('./storage/nairi.pdf')
-    print(texts)
-    for i,text in enumerate(texts):
-        texts[i]["text"] = clean_text(text["text"])
-    print(texts)
-    scenes = get_scenes(texts)
-    scenes = summarize_scenes(scenes)
-    for s in scenes:
-        print("\n","-"*70)
-        print("Scene:", s.scene_id)
-        print(s.text)
-        print("\n","="*40)
-        print(f"Summary for Scene {s.scene_id}")
-        print(s.summary)
+    pages = extract_text("./storage/nairi.pdf")
+
+    for p in pages:
+        p.text = clean_text(p.text)
+        print("\n" + "-" * 80)
+        print(f"PAGE {p.pn}\n")
+        print(p.text[:800], "...\n")
