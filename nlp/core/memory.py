@@ -15,6 +15,7 @@ class World:
         self.timeline = []
         self.extractor = EventExtractor()
         self.relations = []
+        self.events = []
 
     # -----------------------------------------------------------------------------
 
@@ -90,6 +91,7 @@ class World:
         self.page_ind[page.pn] = list(seen)
         self.timeline.append(page.pn)
         self.extractor.extract(page)
+        self.events.extend(page.events)
         print("\n EVENTS FOUND")
         for ev in page.events:
             ev.subject = resolve(ev.subject, page, self)
