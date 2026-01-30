@@ -175,6 +175,8 @@ class NLPEngine:
             roots = set(m["root"].lower() for m in cluster)
 
             head = self.canonical(cluster)
+            if head is None:
+                continue
 
             world.append(
                 {
@@ -215,7 +217,7 @@ class NLPEngine:
     # -----------------------------------------------------------------------------
 
     def canonical(self, cluster):
-        propn = [m for m in cluster if m["root"][0].isupper()]
+        propn = [m for m in cluster if m["root"][0].isupper() and m["text"].lower() not in PRONOUNS]
         if propn:
             return max(propn, key=lambda x: len(x["text"]))["text"]
 
@@ -224,4 +226,4 @@ class NLPEngine:
         if non_pron:
             return max(non_pron, key=lambda x: len(x["text"]))["text"]
 
-        return max(cluster, key=lambda x: len(x["text"]))["text"]
+        return None
