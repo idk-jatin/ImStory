@@ -2,6 +2,8 @@ import numpy as np
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 from .entity import Entity
+from .events import EventExtractor
+from .linker import resolve
 
 
 class World:
@@ -11,6 +13,8 @@ class World:
         self.counter = 0
         self.sim_ts = sim_ts
         self.timeline = []
+        self.extractor = EventExtractor()
+        self.relations = []
 
     # -----------------------------------------------------------------------------
 
@@ -23,7 +27,6 @@ class World:
 
     # -----------------------------------------------------------------------------
 
-
     def sim_ent(self, name, embedding=None):
 
         def normalize(txt):
@@ -34,7 +37,6 @@ class World:
         name_raw = name.lower().strip()
         name_norm = normalize(name_raw)
         name_head = name_norm.split()[-1]
-
 
         for ent in self.ents.values():
 
@@ -56,7 +58,6 @@ class World:
                     return ent
 
         return None
-
 
     # -----------------------------------------------------------------------------
 
@@ -88,17 +89,26 @@ class World:
                 seen.add(ent.id)
         self.page_ind[page.pn] = list(seen)
         self.timeline.append(page.pn)
+        self.extractor.extract(page)
+        print("\n EVENTS FOUND")
+        for ev in page.events:
+            ev.subject = resolve(ev.subject, page, self)
+            ev.object = resolve(ev.object, page, self)
+            ev.indirect = resolve(ev.indirect, page, self)
+            ev.location = resolve(ev.location, page, self)
+
+            print(
+                f"   • {ev.lemma} | " f"{ev.subject} → {ev.object} " f"@ {ev.location}"
+            )
 
     # -----------------------------------------------------------------------------
 
-    def context(self,k=3):
-        pages =self.timeline[-k:]
-        ctx =[]
+    def context(self, k=3):
+        pages = self.timeline[-k:]
+        ctx = []
 
         for p in pages:
-            for eid in self.page_ind.get(p,[]):
+            for eid in self.page_ind.get(p, []):
                 ctx.append(self.ents[eid])
 
         return list(set(ctx))
-    
-    

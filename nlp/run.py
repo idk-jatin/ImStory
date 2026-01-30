@@ -38,9 +38,6 @@ pages = [
     """
 ]
 
-
 for i, text in enumerate(pages, 1):
     page = engine.analyze(i, text)
     memory.r_page(page)
-
-
