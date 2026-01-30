@@ -1,3 +1,29 @@
+import os
+import warnings
+import logging
+import tqdm
+from transformers import logging as hf_logging
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+
+
+hf_logging.set_verbosity_error()
+
+logging.basicConfig(level=logging.ERROR)
+for name in [
+    "transformers",
+    "sentence_transformers",
+    "torch",
+    "thinc",
+    "spacy",
+    "urllib3",
+]:
+    logging.getLogger(name).setLevel(logging.ERROR)
+tqdm.tqdm.disable = True
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+
 from core.engine import NLPEngine
 from core.memory import World
 
@@ -39,5 +65,34 @@ pages = [
 ]
 
 for i, text in enumerate(pages, 1):
+    print(f"\n{'='*60}")
+    print(f" PAGE {i}")
+    print(f"{'='*60}")
+    print(text.strip())
+
     page = engine.analyze(i, text)
     memory.r_page(page)
+
+    print("\n World Entities:")
+    for ent in memory.ents.values():
+        print(f"  • {ent.about()}")
+        if ent.aliases:
+            print(f"      aliases: {sorted(ent.aliases)}")
+
+    if page.events:
+        print("\n Events:")
+        for ev in page.events:
+            print(
+                f"  • {ev.lemma} | "
+                f"{ev.subject} → {ev.object} "
+                f"@ {ev.location}"
+            )
+    else:
+        print("\n Events: none")
+
+    ctx = memory.context()
+    print("\n Active Context (last 3 pages):")
+    for ent in ctx:
+        print(f"  • {ent.name}")
+
+print(f"\n{'='*60}")

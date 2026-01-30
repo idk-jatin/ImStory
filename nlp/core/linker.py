@@ -2,7 +2,7 @@ def resolve(node, page, world):
     if node is None:
         return None
 
-    if hasattr(node, "text") and hasattr(node, "pos_"):
+    if hasattr(node, "text") and hasattr(node, "lemma_"):
         text = node.text.lower()
         head = node.lemma_.lower()
 
@@ -20,5 +20,5 @@ def resolve(node, page, world):
     return {
         "text": node.text,
         "lemma": head,
-        "pos": node.pos_ if hasattr(node, "pos_") else None,
+        "pos": getattr(node, "pos_", None),
     }

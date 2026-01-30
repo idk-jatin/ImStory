@@ -1,34 +1,24 @@
 from .event import Event
 
 LP = {
-    "in",
-    "on",
-    "at",
-    "into",
-    "toward",
-    "towards",
-    "from",
-    "near",
-    "inside",
-    "outside",
-    "beside",
-    "through",
+    "in", "on", "at", "into", "toward", "towards", "from",
+    "near", "inside", "outside", "beside", "through",
 }
 
 
 class EventExtractor:
-
     def extract(self, page):
         events = []
 
         for sent in page.doc.sents:
             for token in sent:
-
                 if token.pos_ != "VERB":
+                    continue
+                if token.dep_ in ("aux", "auxpass"):
                     continue
 
                 subj = self.find_subj(token)
-                if not subj:
+                if subj is None:
                     continue
 
                 obj = self.find_obj(token)
@@ -50,7 +40,7 @@ class EventExtractor:
         page.events = events
         return page
 
-    # -------------------------------------------------------------------------
+    # ---------------------------------------------------------------------
 
     def find_subj(self, verb):
         for c in verb.children:
@@ -58,7 +48,7 @@ class EventExtractor:
                 return c
         return None
 
-    # -------------------------------------------------------------------------
+    # ---------------------------------------------------------------------
 
     def find_obj(self, verb):
         for c in verb.children:
@@ -66,7 +56,7 @@ class EventExtractor:
                 return c
         return None
 
-    # -------------------------------------------------------------------------
+    # ---------------------------------------------------------------------
 
     def find_iobj(self, verb):
         for c in verb.children:
@@ -74,7 +64,7 @@ class EventExtractor:
                 return c
         return None
 
-    # -------------------------------------------------------------------------
+    # ---------------------------------------------------------------------
 
     def find_loc(self, verb):
         for prep in verb.children:
