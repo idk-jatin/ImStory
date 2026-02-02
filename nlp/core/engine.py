@@ -80,7 +80,7 @@ class NLPEngine:
                     "label": ent.label_,
                     "start": ent.start_char,
                     "end": ent.end_char,
-                    "sent_id": ent.sent.start,
+                    "sent_token_start": ent.sent.start,
                     "token_start": ent.start,
                 }
             )

@@ -1,30 +1,19 @@
-
-def resolve(node, page, world):
+def resolve(node, mention_map):
     if node is None:
         return None
 
-    if hasattr(node, "text") and hasattr(node, "pos_"):
-        text = node.text.lower()
-        head = node.lemma_.lower()
-    elif hasattr(node, "root"):
-        text = node.text.lower()
-        head = node.root.lemma_.lower()
-    else:
-        return None
+    if hasattr(node, "id"):
+        return node
+    
+    node_start = node.idx
+    node_end = node.idx + len(node.text)
 
-   
-    for ent in world.ents.values():
-        
-        if text in ent.aliases or head in ent.aliases:
+    for (start, end), ent in mention_map.items():
+        if start <= node_start and end >= node_end:
             return ent
-            
-        for alias in ent.aliases:
-            alias_parts = alias.split()
-            if head in alias_parts:
-                return ent
-
+        
     return {
         "text": node.text,
-        "lemma": head,
-        "pos": node.pos_ if hasattr(node, "pos_") else None,
+        "lemma": node.lemma_,
+        "pos": node.pos_
     }

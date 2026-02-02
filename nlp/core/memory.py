@@ -1,4 +1,3 @@
-import numpy as np
 import re
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -15,7 +14,7 @@ class World:
         self.sim_ts = sim_ts
 
         self.timeline = []
-        self.events = []
+        self.events = []  
         self.relations = []
 
         self.extractor = EventExtractor()
@@ -31,6 +30,22 @@ class World:
 
     # ------------------------------------------------------------------
 
+    def freeze_types(self, typer):
+        """
+        Forces all entities to resolve their type based on accumulated evidence
+        and locks them to prevent future degradation.
+        """
+        print("\n--- LOCKING ONTOLOGY ---")
+        for ent in self.ents.values():
+            final_type = typer.infer_and_lock(ent, self)
+            ent.kind = final_type
+            typer.finalize(ent)
+            
+            if hasattr(ent, "type_scores"):
+                top_score = max(ent.type_scores.values()) if ent.type_scores else 0
+                print(f"Locked ID {ent.id} [{ent.name}] -> {ent.kind} (Score: {top_score})")
+
+
     def sim_ent(self, name, embedding=None):
         def normalize(txt):
             txt = txt.lower().strip()
@@ -42,7 +57,6 @@ class World:
         name_head = name_norm.split()[-1]
 
         for ent in self.ents.values():
-
             if name_raw in ent.aliases:
                 return ent
 
@@ -77,6 +91,8 @@ class World:
 
     def r_page(self, page):
         seen = set()
+        
+        mention_map = {} 
 
         for group in page.world_ents:
             canonical = group["canonical"]
@@ -91,6 +107,7 @@ class World:
                     embedding=None,
                 )
                 seen.add(ent.id)
+                mention_map[(m["start"], m["end"])] = ent
 
         self.page_ind[page.pn] = list(seen)
 
@@ -98,13 +115,14 @@ class World:
             self.timeline.append(page.pn)
 
         self.extractor.extract(page)
-        self.events.extend(page.events)
 
         for ev in page.events:
-            ev.subject = resolve(ev.subject, page, self)
-            ev.object = resolve(ev.object, page, self)
-            ev.indirect = resolve(ev.indirect, page, self)
-            ev.location = resolve(ev.location, page, self)
+            ev.subject = resolve(ev.subject, mention_map)
+            ev.object = resolve(ev.object, mention_map)
+            ev.indirect = resolve(ev.indirect, mention_map)
+            ev.location = resolve(ev.location, mention_map)
+
+        self.events.extend(page.events)
 
     # ------------------------------------------------------------------
 
