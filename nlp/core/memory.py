@@ -12,7 +12,7 @@ class World:
         self.page_ind = {}     
         self.counter = 0
         self.sim_ts = sim_ts
-
+        self.pages = {}
         self.timeline = []
         self.events = []  
         self.relations = []
@@ -31,11 +31,7 @@ class World:
     # ------------------------------------------------------------------
 
     def freeze_types(self, typer):
-        """
-        Forces all entities to resolve their type based on accumulated evidence
-        and locks them to prevent future degradation.
-        """
-        print("\n--- LOCKING ONTOLOGY ---")
+
         for ent in self.ents.values():
             final_type = typer.infer_and_lock(ent, self)
             ent.kind = final_type
@@ -90,6 +86,7 @@ class World:
     # ------------------------------------------------------------------
 
     def r_page(self, page):
+        self.pages[page.pn] = page
         seen = set()
         
         mention_map = {} 

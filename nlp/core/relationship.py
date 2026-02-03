@@ -1,6 +1,6 @@
 import nltk
 
-class RelationshipEngine:
+class RelationExtractor:
     def __init__(self):
         try:
             nltk.data.find("corpora/wordnet.zip")
@@ -52,10 +52,6 @@ class RelationshipEngine:
         return relationships
 
     def _enforce_contract(self, rel_type, source, target):
-        """
-        Validates ontology constraints. Returns (is_valid, source, target).
-        If invalid but flippable, returns flipped entities.
-        """
         s_kind = source.kind
         t_kind = target.kind
 

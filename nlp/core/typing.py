@@ -47,7 +47,9 @@ class Typer:
 
 
         if not entity.type_scores:
-            return "OBJECT" 
+            entity.kind = "ABSTRACT"
+            return entity.kind
+
             
         best_type = max(entity.type_scores, key=entity.type_scores.get)
         current_type = entity.kind
@@ -56,33 +58,59 @@ class Typer:
         curr_level = TYPE_HIERARCHY.get(current_type, 0)
         new_level = TYPE_HIERARCHY.get(best_type, 0)
 
+        if best_type == "CHARACTER":
+            head = entity.name.split()[-1].lower()
+            synsets = self.wn.synsets(head)
+            if synsets:
+                lex = synsets[0].lexname()
+                if any(x in lex for x in ("artifact", "location", "structure")):
+                    best_type = "PLACE" if "location" in lex else "OBJECT"
+
         if new_level >= curr_level:
-            return best_type
+            entity.kind = best_type
         else:
-            return current_type
+            entity.kind = current_type
+
+        return entity.kind
 
     def finalize(self, entity):
         entity.locked = True
 
+
     def _score_noun_semantics(self, entity):
         head = entity.name.split()[-1].lower()
         synsets = self.wn.synsets(head)
-        if not synsets: return
+        if not synsets:
+            return
 
         primary = synsets[0]
         lex = primary.lexname()
 
+        if "time" in lex or "cognition" in lex:
+            entity.type_scores["ABSTRACT"] += SCORE_NOUN_MATCH
+            return  
+
         if "person" in lex or "animal" in lex:
             entity.type_scores["CHARACTER"] += SCORE_NOUN_MATCH
-        elif "location" in lex or "group" in lex:
+
+        elif "location" in lex:
             entity.type_scores["PLACE"] += SCORE_NOUN_MATCH
+
+        elif "group" in lex:
+            entity.type_scores["CHARACTER"] += SCORE_NOUN_MATCH * 0.5
+
         elif "artifact" in lex or "object" in lex:
             entity.type_scores["OBJECT"] += SCORE_NOUN_MATCH
-        
+
         if primary.hypernym_paths():
-            hypers = {h.name() for path in primary.hypernym_paths() for h in path}
+            hypers = {
+                h.name()
+                for path in primary.hypernym_paths()
+                for h in path
+            }
             if "location.n.01" in hypers:
                 entity.type_scores["PLACE"] += SCORE_NOUN_MATCH
+
 
     def _score_verb_semantics(self, entity, world):
 
@@ -103,4 +131,15 @@ class Typer:
                 entity.type_scores["CHARACTER"] += SCORE_VERB_AGENT
             
             elif domain == "verb.motion":
-                entity.type_scores["CHARACTER"] += SCORE_VERB_MOTION
+                if self.is_intentional_agent(entity) and entity.kind not in ("PLACE",):
+                    entity.type_scores["CHARACTER"] += SCORE_VERB_MOTION
+
+    
+    def is_intentional_agent(self,entity):
+        head = entity.name.split()[-1].lower()
+        synsets = self.wn.synsets(head)
+        if not synsets:
+            return False
+
+        lex = synsets[0].lexname()
+        return "person" in lex or "animal" in lex

@@ -77,7 +77,7 @@ class Relation:
 
 
 
-class RelationPromotionEngine:
+class Promoter:
     def __init__(self):
         self.relations = {}
 

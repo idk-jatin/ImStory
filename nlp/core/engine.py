@@ -2,6 +2,7 @@ import spacy
 from fastcoref import spacy_component
 from sentence_transformers import SentenceTransformer
 from .page import PageDoc
+from nltk.corpus import wordnet as wn
 
 
 PRONOUNS = {
@@ -47,8 +48,7 @@ class NLPEngine:
     def analyze(self, page_num, text):
         page = PageDoc(page_num, text)
 
-        doc = self.nlp(text,component_cfg={"fastcoref": {"resolve_text": False}})
-
+        doc = self.nlp(text, component_cfg={"fastcoref": {"resolve_text": False}})
         page.doc = doc
         page.resolved_text = doc._.resolved_text
 
@@ -66,6 +66,7 @@ class NLPEngine:
         self.ext_world(page)
         self.ext_noun(page)
         self.res_ents(page)
+        self.bind_aliases(page)
 
         return page
 
@@ -123,16 +124,41 @@ class NLPEngine:
 
     # -------------------------------------------------------------------------
 
+    def is_event_nominal(self, lemma):
+        synsets = wn.synsets(lemma, pos=wn.NOUN)
+        return any(s.lexname().startswith("noun.act") for s in synsets)
+
+    def is_abstract_attribute(self, lemma: str) -> bool:
+        synsets = wn.synsets(lemma, pos=wn.NOUN)
+        return any(
+            s.lexname() in {
+                "noun.attribute",
+                "noun.feeling",
+                "noun.cognition",
+                "noun.state",
+            }
+            for s in synsets
+        )
+
+    # -------------------------------------------------------------------------
+
     def ext_world(self, page):
         world = []
 
         for cluster in page.coref_clusters:
-            aliases = {m["text"].lower() for m in cluster}
-            roots = {m["lemma"].lower() for m in cluster}
+            if not self.is_referential(cluster):
+                continue
 
             canonical = self.canonical(cluster)
             if canonical is None:
                 continue
+
+            head = canonical.split()[-1].lower()
+            if self.is_abstract_attribute(head):
+                continue
+
+            aliases = {m["text"].lower() for m in cluster}
+            roots = {m["lemma"].lower() for m in cluster}
 
             world.append(
                 {
@@ -152,6 +178,12 @@ class NLPEngine:
 
         for chunk in page.doc.noun_chunks:
             root = chunk.root
+
+            if self.is_abstract_attribute(root.lemma_):
+                continue
+
+            if self.is_event_nominal(root.lemma_):
+                continue
 
             if root.pos_ not in ("NOUN", "PROPN"):
                 continue
@@ -179,13 +211,14 @@ class NLPEngine:
 
     def res_ents(self, page):
         for ent in page.world_ents:
-            name = ent["canonical"]
-
-            self.register(page.characters, name, ent)
+            self.register(page.characters, ent["canonical"], ent)
 
     # -------------------------------------------------------------------------
 
     def register(self, bucket, name, ent):
+        if ent["canonical"].islower():
+            return
+
         if name not in bucket:
             bucket[name] = {
                 "name": name,
@@ -199,6 +232,10 @@ class NLPEngine:
     # -------------------------------------------------------------------------
 
     def canonical(self, cluster):
+        for m in cluster:
+            if m["lemma"] == "name":
+                return None
+
         propn = [
             m for m in cluster
             if m["text"][0].isupper()
@@ -218,3 +255,18 @@ class NLPEngine:
             return max(non_pron, key=lambda x: len(x["text"]))["text"]
 
         return None
+
+    # -------------------------------------------------------------------------
+
+    def is_referential(self, cluster):
+        return any(m["pos"] in {"PROPN", "NOUN"} for m in cluster)
+
+    # -------------------------------------------------------------------------
+
+    def bind_aliases(self, page):
+        for ev in page.events:
+            if isinstance(ev.object, dict) and "alias" in ev.object:
+                alias = ev.object["alias"].lower()
+                subject = ev.subject
+                if hasattr(subject, "aliases"):
+                    subject.aliases.add(alias)
