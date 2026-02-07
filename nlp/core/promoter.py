@@ -1,11 +1,12 @@
 import math
 
-CONTINUOUS_TYPES = {"POSSESSES", "IS", "LOCATED", "WEARS", "HAS_ATTRIBUTE"}
-
-STATE_HALF_LIFE = 6       
-ACTION_HALF_LIFE = 2       
-MAX_STATE_PERSIST = 12     
-SPAN_BOOST_SCALE = 0.15   
+from core.constants import (
+    CONTINUOUS_TYPES,
+    STATE_HALF_LIFE,
+    ACTION_HALF_LIFE,
+    MAX_STATE_PERSIST,
+    SPAN_BOOST_SCALE,
+)
 
 
 class Relation:
@@ -76,7 +77,6 @@ class Relation:
         )
 
 
-
 class Promoter:
     def __init__(self):
         self.relations = {}
@@ -88,9 +88,7 @@ class Promoter:
             key = (r["source_id"], r["type"], r["target_id"])
 
             if key in self.relations:
-                self.relations[key].reinforce(
-                    r["page"], r["verb"], r["sentence"]
-                )
+                self.relations[key].reinforce(r["page"], r["verb"], r["sentence"])
             else:
                 self.relations[key] = Relation(
                     r["source_obj"],
@@ -104,11 +102,7 @@ class Promoter:
         for rel in self.relations.values():
             rel.compute_confidence()
 
-        return sorted(
-            self.relations.values(),
-            key=lambda r: r.confidence,
-            reverse=True
-        )
+        return sorted(self.relations.values(), key=lambda r: r.confidence, reverse=True)
 
     # ------------------------------------------------------------
 

@@ -18,7 +18,6 @@ class PageSalience:
         self.dominant_state = dominant_state
         self.dominant_action = dominant_action
         self.salience_scores = salience_scores
-        # entity_id -> score
 
 
 # ------------------------------------------------------------
@@ -31,9 +30,9 @@ class Salience:
     PAGE_EVENT_BOOST = 0.3
     CONTEXT_BONUS = 0.15
     MAX_ENTITIES = 3
-    RECENT_PAGE_BOOST = 3.5  
-    NEAR_PAGE_BOOST = 1.5 
-    DECAY_LAMBDA = 0.8 
+    RECENT_PAGE_BOOST = 3.5
+    NEAR_PAGE_BOOST = 1.5
+    DECAY_LAMBDA = 0.8
 
     def compute(self, page, world) -> PageSalience:
         page_num = page.pn
@@ -66,11 +65,10 @@ class Salience:
             if age > 1:
                 score *= math.exp(-self.DECAY_LAMBDA * (age - 1))
 
-          
             if ent.first_page is not None and ent.last_page is not None:
                 lifespan = ent.last_page - ent.first_page
                 if lifespan > 0:
-                    score += math.log1p(lifespan) * 0.5  
+                    score += math.log1p(lifespan) * 0.5
 
             for r in active_relations:
                 if r.source == ent or r.target == ent:
@@ -124,7 +122,6 @@ class Salience:
             actions = [r for r in active_relations if not r.is_continuous]
             if actions:
                 dominant_action = max(actions, key=lambda r: r.confidence)
-
 
         return PageSalience(
             page=page_num,

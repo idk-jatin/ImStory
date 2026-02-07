@@ -1,5 +1,6 @@
 import nltk
 
+
 class RelationExtractor:
     def __init__(self):
         try:
@@ -57,7 +58,7 @@ class RelationExtractor:
 
         if rel_type == "POSSESSES":
             if s_kind == "OBJECT" and t_kind == "CHARACTER":
-                return True, target, source  
+                return True, target, source
 
             if s_kind == "CHARACTER":
                 return True, source, target
@@ -67,10 +68,9 @@ class RelationExtractor:
         if rel_type in ["OBSERVES", "FEELS", "INTERACTS"]:
 
             if s_kind == "OBJECT":
-                return False, source, target 
+                return False, source, target
 
             return True, source, target
-
 
         if rel_type == "IS":
             return True, source, target

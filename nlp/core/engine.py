@@ -3,21 +3,9 @@ from fastcoref import spacy_component
 from sentence_transformers import SentenceTransformer
 from .page import PageDoc
 from nltk.corpus import wordnet as wn
-
-
-PRONOUNS = {
-    "i","me","we","us","you","he","him","she","her","it","they","them",
-    "mine","ours","yours","his","hers","theirs","its","their",
-    "myself","ourselves","yourself","yourselves","himself","herself",
-    "itself","themselves","oneself",
-    "this","that","these","those","such","one","ones",
-    "each","either","neither","every","none",
-    "who","whom","whose","which",
-    "each other","one another",
-    "everybody","somebody","nobody","anybody","someone","no one","anyone",
-    "everything","something","nothing","anything",
-    "all","some","any","both","another","much","few","little",
-}
+from core.mood import MoodExtractor
+from core.visual_extraction import VisualEvidenceExtractor
+from core.constants import PRONOUNS
 
 
 def is_pronoun(text: str) -> bool:
@@ -43,6 +31,9 @@ class NLPEngine:
             device=device,
         )
 
+        self.mood_engine = MoodExtractor(self.embedder)
+        self.visual_extractor = VisualEvidenceExtractor()
+
     # -------------------------------------------------------------------------
 
     def analyze(self, page_num, text):
@@ -53,13 +44,10 @@ class NLPEngine:
         page.resolved_text = doc._.resolved_text
 
         page.sentences = [
-            {"sid": i, "text": s.text.strip()}
-            for i, s in enumerate(doc.sents)
+            {"sid": i, "text": s.text.strip()} for i, s in enumerate(doc.sents)
         ]
 
-        page.embedding = self.embedder.encode(
-            text, normalize_embeddings=True
-        )
+        page.embedding = self.embedder.encode(text, normalize_embeddings=True)
 
         self.ext_ents(page)
         self.ext_corefs(page)
@@ -67,6 +55,16 @@ class NLPEngine:
         self.ext_noun(page)
         self.res_ents(page)
         self.bind_aliases(page)
+        page.mood = self.mood_engine.extract(page)
+        page.atmosphere = self.mood_engine.extract_atmosphere(page)
+        page.visual_evidence = self.visual_extractor.extract(page.doc)
+        print(
+            f"PAGE {page.pn} | "
+            f"tone={page.mood.tone} "
+            f"val={page.mood.valence} "
+            f"aro={page.mood.arousal} "
+            f"ten={page.mood.tension}"
+        )
 
         return page
 
@@ -96,9 +94,7 @@ class NLPEngine:
             mentions = []
 
             for start, end in cluster:
-                span = page.doc.char_span(
-                    start, end, alignment_mode="contract"
-                )
+                span = page.doc.char_span(start, end, alignment_mode="contract")
                 if span is None:
                     continue
 
@@ -131,7 +127,8 @@ class NLPEngine:
     def is_abstract_attribute(self, lemma: str) -> bool:
         synsets = wn.synsets(lemma, pos=wn.NOUN)
         return any(
-            s.lexname() in {
+            s.lexname()
+            in {
                 "noun.attribute",
                 "noun.feeling",
                 "noun.cognition",
@@ -237,7 +234,8 @@ class NLPEngine:
                 return None
 
         propn = [
-            m for m in cluster
+            m
+            for m in cluster
             if m["text"][0].isupper()
             and not is_pronoun(m["text"])
             and len(m["text"]) > 2
@@ -246,10 +244,7 @@ class NLPEngine:
         if propn:
             return max(propn, key=lambda x: len(x["text"]))["text"]
 
-        non_pron = [
-            m for m in cluster
-            if not is_pronoun(m["text"])
-        ]
+        non_pron = [m for m in cluster if not is_pronoun(m["text"])]
 
         if non_pron:
             return max(non_pron, key=lambda x: len(x["text"]))["text"]
