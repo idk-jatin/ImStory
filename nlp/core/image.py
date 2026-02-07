@@ -35,6 +35,9 @@ class VisualWorldState:
 
             self.place = scene.place
 
+        if hasattr(scene, "continuity") and scene.continuity == "enter":
+            self.place = None
+
         DECAY_RATE = 0.8
         toremove = []
         for tag in self.atmosphere_scores:
@@ -57,7 +60,7 @@ class VisualWorldState:
                     "page": top["page"],
                 }
 
-        clothing_decay_window = 5
+        clothing_decay_window = 20
         expired_clothing = []
         if current_page_num:
             for name, info in self.last_known_clothing.items():
@@ -172,7 +175,7 @@ class ImageFrameBuilder:
 
     GLOBAL_STYLE = (
         "watercolor illustration, hand-painted look, "
-        "soft edges, muted color palette, cinematic lighting"
+        "sharp focus, defined edges, vibrant color palette, cinematic lighting, highly detailed, cinematic composition"
     )
 
     def __init__(self):
@@ -299,6 +302,9 @@ class PromptBuilder:
         SOFT_ACTIONS = {"freeze", "pause", "stop", "wait", "think"}
         lemma = ev.lemma.lower() if hasattr(ev, "lemma") else ""
 
+        if lemma and lemma not in self.VISUAL_VERBS:
+            return ""
+
         if lemma and lemma not in self.VISUAL_VERBS and lemma not in SOFT_ACTIONS:
             phrase = f"{subj}"
         elif lemma in SOFT_ACTIONS:
@@ -361,6 +367,9 @@ class PromptBuilder:
 
         candidates = list(frame.characters)
 
+        if frame.intensity < 0.3:
+            candidates = []
+
         def subject_score(char):
             score = 0
             if (
@@ -385,7 +394,7 @@ class PromptBuilder:
 
         scene_focus = ""
 
-        if subjects:
+        if subjects and any(len(s.split()) > 1 for s in subjects):
             if frame.dominant_action:
                 ev = frame.dominant_action
                 if hasattr(ev, "lemma"):
@@ -406,10 +415,16 @@ class PromptBuilder:
                 traits = []
                 if hasattr(char_obj, "hair") and char_obj.hair:
                     traits.append(next(iter(char_obj.hair)))
+                if hasattr(char_obj, "face") and char_obj.face:
+                    traits.append(next(iter(char_obj.face)))
+
                 if name in frame.clothing_context:
                     traits.append(f"wearing {frame.clothing_context[name]}")
                 elif hasattr(char_obj, "clothing") and char_obj.clothing:
                     traits.append(f"wearing {char_obj.clothing[0]['desc']}")
+
+                if hasattr(char_obj, "color_palette") and char_obj.color_palette:
+                    pass
 
                 if traits:
                     scene_focus = scene_focus.replace(
@@ -428,14 +443,15 @@ class PromptBuilder:
                     if conds:
                         scene_focus = f"focus on {conds[0]} {anchor_obj.name}"
             elif frame.place:
-                scene_focus = f"empty {frame.place.name}"
+                scene_focus = f"{frame.place.name} environment"
             else:
-                scene_focus = "empty cinematic environment"
+                scene_focus = "cinematic environment"
 
         parts.append(scene_focus)
 
         if frame.place:
-            parts.append(f"in {frame.place.name}")
+            p_name = frame.place.name.replace("empty", "").strip()
+            parts.append(f"in {p_name}")
 
         atms = []
         if frame.visual_evidence:
@@ -475,6 +491,9 @@ class PromptBuilder:
 
         final_atms = self._rank_descriptors(final_atms, limit=6)
 
+        if len(final_atms) > 4:
+            final_atms = final_atms[:4]
+
         parts.append(", ".join(final_atms))
         lights = []
         has_evidence = False
@@ -503,4 +522,13 @@ class PromptBuilder:
         parts.append(f"({frame.style}:1.2)")
         parts.append("masterpiece, best quality, 8k, highly detailed")
 
-        return ", ".join([p for p in parts if p])
+        final_prompt = ", ".join([p for p in parts if p])
+
+        BLACKLIST = {"no people", "empty", "abandoned", "deserted", "vacant", "still"}
+
+        if frame.characters:
+            for bad_word in BLACKLIST:
+                final_prompt = final_prompt.replace(bad_word, "")
+                final_prompt = final_prompt.replace(bad_word.title(), "")
+
+        return final_prompt

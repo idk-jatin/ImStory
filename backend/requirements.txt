@@ -1,18 +1,9 @@
 fastapi
 uvicorn
 python-multipart
+requests
 
 pymupdf
 pytesseract
 pillow
 opencv-python
-
-nltk
-spacy
-tqdm
-sumy 
-scikit-learn
-
-transformers
-ftfy
-accelerate

@@ -1,0 +1,86 @@
+{
+    "2": {
+        "inputs": {
+            "ckpt_name": "v1-5-pruned-emaonly.safetensors"
+        },
+        "class_type": "CheckpointLoaderSimple"
+    },
+    "3": {
+        "inputs": {
+            "text": "__POSITIVE_PROMPT__",
+            "clip": [
+                "2",
+                1
+            ]
+        },
+        "class_type": "CLIPTextEncode"
+    },
+    "4": {
+        "inputs": {
+            "text": "__NEGATIVE_PROMPT__",
+            "clip": [
+                "2",
+                1
+            ]
+        },
+        "class_type": "CLIPTextEncode"
+    },
+    "5": {
+        "inputs": {
+            "width": 512,
+            "height": 512,
+            "batch_size": 1
+        },
+        "class_type": "EmptyLatentImage"
+    },
+    "6": {
+        "inputs": {
+            "seed": "__SEED__",
+            "steps": 24,
+            "cfg": 6.5,
+            "sampler_name": "dpmpp_2m",
+            "scheduler": "normal",
+            "denoise": 1,
+            "model": [
+                "2",
+                0
+            ],
+            "positive": [
+                "3",
+                0
+            ],
+            "negative": [
+                "4",
+                0
+            ],
+            "latent_image": [
+                "5",
+                0
+            ]
+        },
+        "class_type": "KSampler"
+    },
+    "7": {
+        "inputs": {
+            "samples": [
+                "6",
+                0
+            ],
+            "vae": [
+                "2",
+                2
+            ]
+        },
+        "class_type": "VAEDecode"
+    },
+    "8": {
+        "inputs": {
+            "filename_prefix": "__FILENAME__",
+            "images": [
+                "7",
+                0
+            ]
+        },
+        "class_type": "SaveImage"
+    }
+}

@@ -15,5 +15,7 @@ frontend/node_modules/
 .vscode/
 
 backend/app/storage/
-
+backend/storage/
 fails/
+
+/storage

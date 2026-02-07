@@ -1,0 +1,15 @@
+
+
+fastapi
+uvicorn
+pydantic
+transformers
+sentence-transformers
+spacy
+torch
+nltk
+sumy
+scikit-learn
+ftfy
+accelerate
+tqdm
